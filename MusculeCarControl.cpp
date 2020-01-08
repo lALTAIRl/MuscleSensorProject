@@ -8,15 +8,17 @@
 #define backwardLed 12
 
 //управление:
-// _______    _________
-//  вперёд       влево
-// _______     ________
-
-// назад       вправо
-// _______    __________
-
-// ничего        ничего
-// _______    ____________
+//  первая  |     вторая 
+//  запись  |     запись
+// ________ |  ____________
+//  вперёд  |     влево
+// ________ |  ____________
+//          | 
+//  назад   |     вправо
+// ________ |  ____________
+//          |
+// ничего   |     ничего
+// ________ |  ____________
 
 //для бегущего среднего:
 //чем меньше коэфицент - тем больше отставание от реального графика
@@ -58,9 +60,8 @@ void setup()
     pinMode(backwardLed, OUTPUT);
     Serial.begin(9600);
 
-    //DoDelayTreeSecBeforeRecord();
-    //RecordMusculeActivity();
-    RecordFakeValues();
+    RecordMusculeActivity();
+    //RecordFakeValues();
     SetAllValuesToDefaults();
     //DoDelayTreeSecBeforePlay();
     delay(1000);
@@ -70,26 +71,37 @@ void setup()
 
 void CalibrateLevels()
 {
-    Serial.println(F("Prepare to strain the muscle to the maximum on 3 seconds."));
-    Serial.println(F("Calibration begins in 3"));
-    delay(1000);
-    Serial.println(F("Calibration begins in 2"));
-    delay(1000);
-    Serial.println(F("Calibration begins in 1"));
-    delay(1000);
+    // Serial.println(F("Prepare to strain the muscle to the maximum on 3 seconds."));
+    // Serial.println(F("Calibration begins in 3"));
+    // Serial.println(F("Calibration begins in 2"));
+    // Serial.println(F("Calibration begins in 1"));
+    // Serial.print(F("Strain the muscle to the maximum on 3 s"));
 
-    Serial.print(F("Strain the muscle to the maximum on 3 s"));
+    uint32_t now = millis();
+    PrintPlot(0, 0, 550);
+    while (millis() - now <= 3000)
+    {
+        if (millis() - now == 1000 || millis() - now == 2000)
+        {
+            PrintPlot(0, 0, 550);
+        }
+        PrintPlot(0, 0, 0);
+    }
+    PrintPlot(0, 0, 1023);
 
     long counter = 0;
     double average = 0;
-    uint32_t now = millis();
+    SetAllLedValuesToMax();
+    now = millis();
     while (millis() - now < 3000)
     {
         sensorValue = analogRead(A7);
+        PrintPlot(sensorValue, sensorValue, 0);
         average += sensorValue;
         counter++;
     }
-
+    SetAllValuesToDefaults();
+    PrintPlot(0, 0, 1023);
     average /= counter;
     Serial.println(F("Thanks, dude, you are really strong. Now we can start record. Your average is "));
     Serial.println(average);
@@ -99,6 +111,14 @@ void CalibrateLevels()
     Serial.println(plotUpperZoneLevel);
     Serial.println(F("Your plotMediumZoneLevel is "));
     Serial.println(plotMediumZoneLevel);
+}
+
+void SetAllLedValuesToMax()
+{
+    digitalWrite(leftLed, HIGH);
+    digitalWrite(rightLed, HIGH);
+    digitalWrite(backwardLed, HIGH);
+    digitalWrite(forwardLed, HIGH);
 }
 
 void PlayRecordedMusculeActivity()
@@ -176,6 +196,8 @@ void SetAllValuesToDefaults()
 void RecordMusculeActivity()
 {
     CalibrateLevels();
+
+    DoDelayTreeSecBeforeRecord();
 
     Serial.println(F("Recording Acceleration..."));
     RecordAcceleration();
@@ -349,7 +371,7 @@ void RecordFakeValues()
             sensorValue = 0;
         else if (i < 195)
             sensorValue = 1023;
-        else if(i < 255) //235
+        else if (i < 255) //235
             sensorValue = plotMediumZoneLevel + 1;
         else
             sensorValue = 0;
@@ -406,6 +428,16 @@ void PrintPlot(short sensorValue, float filtredSensorValue, short iterationDivid
     Serial.print(iterationDivider);
     Serial.print(F(" "));
     Serial.println(filtredSensorValue);
+}
+
+void PrintCalibrationCountdoun(short dividerValue)
+{
+    Serial.print(0); // To freeze the lower limit
+    Serial.print(F(" "));
+    Serial.print(plotMaxLevel); // To freeze the upper limit
+    Serial.print(F(" "));
+    Serial.print(dividerValue); // To freeze the lower limit
+    Serial.print(F(" "));
 }
 
 void SetDefaultMoveValues(bool isTurns)
